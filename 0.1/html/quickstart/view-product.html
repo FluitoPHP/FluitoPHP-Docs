@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>FluitoPHP: Viewing the Product</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body>
+        <div>
+            <h2 id="view-product">Creating a URL to view the Product <a class="target-sym" href="#view-product">&#8623;</a></h2>
+            <p>
+                To create a new URL we need either need to create a new action in the index controller or we need to create a new controller. In this scenario, we will proceed with the new controller. We need to create a new product controller with an index action to vie the product.
+            </p>
+            <p>
+                To create a new controller, we need to create <strong>productController.class.php</strong> file in <strong>Base/application/modules/index/controllers</strong> and add the following code.
+            </p>
+            <pre><code>&#60;?php
+
+class productController extends \FluitoPHP\Controller\Controller {
+
+    public function indexAction() {
+
+        $URLVars = $this-&#62;Request()-&#62;GetURLVars();
+
+        if (!isset($URLVars[0])) {
+
+            throw new Exception('Error: Please provide Product ID.');
+        }
+
+        $productID = $URLVars[0];
+
+        $product = $this-&#62;Model('products')-&#62;Select([], [['column' =&#62; 'ID', 'rightvalue' =&#62; $productID]]);
+
+        if (!isset($product[0])) {
+
+            throw new Exception('Error: Product ID do not exists.');
+        }
+
+        $this-&#62;Set('list-products-url', $this-&#62;URL("index", "index", "index"));
+
+        $this-&#62;Set('product', $product[0]);
+
+        $this-&#62;View()-&#62;Title('FluitoPHP: View Product');
+    }
+}</code></pre>
+            <p>
+                After this controller-action pair we need to have its corresponding view (<span class="bg-warning">controller</span><span class="bg-info">Action</span>.php) for the framework to render the page. To create a new view, we need to create <strong>productIndex.php</strong> file in <strong>Base/application/modules/index/views</strong> and add the code below.
+            </p>
+            <pre><code>&#60;?php
+$product = $this-&#62;Get('product');
+$listurl = $this-&#62;Get('list-products-url');
+?&#62;
+&#60;div class="text-center mt-4 mb-2"&#62;
+    &#60;h1&#62;
+        Product Details
+    &#60;/h1&#62;
+&#60;/div&#62;
+&#60;div&#62;
+    &#60;div class = "card mb-2"&#62;
+        &#60;h3 class = "card-header text-center"&#62;&#60;?php echo $product['name']; ?&#62;&#60;/h3&#62;
+        &#60;div class = "card-body"&#62;
+            &#60;div class="clearfix mb-4"&#62;
+                &#60;a href="&#60;?php echo $listurl; ?&#62;" class="btn btn-sm btn-outline-primary back float-right ml-2"&#62;Back&#60;/a&#62;
+            &#60;/div&#62;
+            &#60;div class="form-group"&#62;
+                &#60;label&#62;Product ID&#60;/label&#62;
+                &#60;div class="form-control"&#62;&#60;?php echo $product['ID']; ?&#62;&#60;/div&#62;
+            &#60;/div&#62;
+            &#60;div class="form-group"&#62;
+                &#60;label&#62;Product Name&#60;/label&#62;
+                &#60;div class="form-control"&#62;&#60;?php echo $product['name']; ?&#62;&#60;/div&#62;
+            &#60;/div&#62;
+            &#60;div class="form-group"&#62;
+                &#60;label&#62;Product Description&#60;/label&#62;
+                &#60;div class="form-control"&#62;&#60;?php echo $product['descr']; ?&#62;&#60;/div&#62;
+            &#60;/div&#62;
+            &#60;div class="form-group"&#62;
+                &#60;label&#62;Product Image&#60;/label&#62;
+                &#60;div class="form-control text-center"&#62;&#60;img src="&#60;?php echo $product['image']; ?&#62;" alt="Product Image" class="img-thumbnail"/&#62;&#60;/div&#62;
+            &#60;/div&#62;
+            &#60;div class="form-group"&#62;
+                &#60;label&#62;Created On&#60;/label&#62;
+                &#60;div class="form-control"&#62;&#60;?php echo $product['created']; ?&#62;&#60;/div&#62;
+            &#60;/div&#62;
+            &#60;div class="form-group"&#62;
+                &#60;label&#62;Updated On&#60;/label&#62;
+                &#60;div class="form-control"&#62;&#60;?php echo $product['edited']; ?&#62;&#60;/div&#62;
+            &#60;/div&#62;
+        &#60;/div&#62;
+    &#60;/div&#62;
+&#60;/div&#62;</code></pre>
+            <p>
+                This will create the page to view the product. Now our next step is to update the product list such that we can add a new column to the table to add a link to view that product. To do this we need to update index controller with the code below.
+            </p>
+            <pre><code>public function indexAction() {
+
+    $products = array();
+
+    <span class="bg-warning">$this-&#62;Set('view-product-url', $this-&#62;URL("product", "index", "index", ['{$PRODUCT}']));</span>
+
+    $URLVars = $this-&#62;Request()-&#62;GetURLVars();
+
+    if (isset($URLVars[0]) &#38;&#38; intval($URLVars[0])) {
+
+        $page = intval($URLVars[0]);
+    } else {
+
+        $page = 1;
+    }
+
+    $perpage = intval($this-&#62;Request()-&#62;Get('perpage'));
+
+    if ($perpage &#38;&#38;
+            $perpage &#62;= self::minperpage &#38;&#38;
+            $perpage &#60;= self::maxperpage) {
+
+        $this-&#62;Session()-&#62;Set('productperpage', $perpage);
+    } else {
+
+        $perpage = $this-&#62;Session()-&#62;Get('productperpage');
+
+        if (!$perpage) {
+
+            $perpage = self::defaultperpage;
+            $this-&#62;Session()-&#62;Set('productperpage', $perpage);
+        }
+    }
+
+    $results = $this-&#62;Model('products')-&#62;Select('count(*) as "count"');
+    $count = intval($results[0]['count']);
+
+    $totalpages = ceil($count / $perpage);
+
+    $pagination = $this-&#62;Load('Pagination', array(
+        'url' =&#62; $this-&#62;URL('index', 'index', 'index', ['{$PAGE}']),
+        'totalPages' =&#62; $totalpages,
+        'currentPage' =&#62; $page,
+        'container' =&#62; array(
+            'class' =&#62; 'pagination justify-content-end',
+            'prefix' =&#62; '&#60;nav&#62;',
+            'suffix' =&#62; '&#60;/nav&#62;'
+        ),
+        'element' =&#62; array(
+            'class' =&#62; 'page-item',
+            'linkClass' =&#62; 'page-link'
+        )
+    ));
+
+    $this-&#62;Set('pagination', $pagination);
+
+    $this-&#62;Set('count', $count);
+
+    $this-&#62;Set('products', $this-&#62;Model('products')-&#62;Select([], [], [], [], [], [], $perpage, $page, []));
+
+    $this-&#62;View()-&#62;Title('FluitoPHP: Product List');
+}</code></pre>
+            <p>
+                Along with the index controller we need to update the product list view to accomodate the changes.
+            </p>
+            <pre><code>&#60;div class="text-center mt-4 mb-2"&#62;
+    &#60;h1&#62;
+        Products
+    &#60;/h1&#62;
+&#60;/div&#62;
+&#60;?php
+$count = $this-&#62;Get('count');
+$products = $this-&#62;Get('products');
+$pagination = $this-&#62;Get('pagination');
+<span class="bg-warning">$viewurl = $this-&#62;Get('view-product-url');</span>
+?&#62;
+&#60;div&#62;
+    &#60;div class = "card mb-2"&#62;
+        &#60;h3 class = "card-header"&#62;List of Products&#60;/h3&#62;
+        &#60;div class = "card-body"&#62;
+            &#60;form class="mb-2"&#62;
+                &#60;p class = "card-text clearfix"&#62;
+                    &#60;span class="float-right"&#62;
+                        Products per page:
+                        &#60;input type="number" min="5" max="50" class="form-control d-inline" style="width: 60px;" name="perpage" value="&#60;?php echo $this-&#62;Session()-&#62;Get('productperpage'); ?&#62;"/&#62;
+                        &#60;input type="submit" class="form-control d-inline" style="width: 50px;" value="GO"/&#62;
+                    &#60;/span&#62;
+                &#60;/p&#62;
+            &#60;/form&#62;
+            &#60;?php if ($pagination): ?&#62;
+                &#60;?php $pagination-&#62;Render(); ?&#62;
+            &#60;?php endif; ?&#62;
+            &#60;?php if ($count &#38;&#38; $products): ?&#62;
+                &#60;div class="table-responsive"&#62;
+                    &#60;table class="table"&#62;
+                        &#60;thead&#62;
+                            &#60;tr&#62;
+                                &#60;th scope="col"&#62;ID&#60;/th&#62;
+                                &#60;th scope="col"&#62;Name&#60;/th&#62;
+                                &#60;th scope="col"&#62;Description&#60;/th&#62;
+                                <span class="bg-warning">&#60;th scope="col"&#62;View&#60;/th&#62;</span>
+                            &#60;/tr&#62;
+                        &#60;/thead&#62;
+                        &#60;tfoot&#62;
+                            &#60;tr&#62;
+                                &#60;th scope="col"&#62;ID&#60;/th&#62;
+                                &#60;th scope="col"&#62;Name&#60;/th&#62;
+                                &#60;th scope="col"&#62;Description&#60;/th&#62;
+                                <span class="bg-warning">&#60;th scope="col"&#62;View&#60;/th&#62;</span>
+                            &#60;/tr&#62;
+                        &#60;/tfoot&#62;
+                        &#60;tbody&#62;
+                            &#60;?php foreach ($products as $product): ?&#62;
+                                &#60;tr&#62;
+                                    &#60;td&#62;&#60;?php echo $product['ID']; ?&#62;&#60;/td&#62;
+                                    &#60;td&#62;&#60;?php echo $product['name']; ?&#62;&#60;/td&#62;
+                                    &#60;td&#62;&#60;?php echo $product['descr']; ?&#62;&#60;/td&#62;
+                                    <span class="bg-warning">&#60;td&#62;&#60;a href="&#60;?php echo str_replace('{$PRODUCT}', $product['ID'], $viewurl); ?&#62;" title="&#60;?php echo $product['name']; ?&#62;"&#62;View&#60;/a&#62;&#60;/td&#62;</span>
+                                &#60;/tr&#62;
+                            &#60;?php endforeach; ?&#62;
+                        &#60;/tbody&#62;
+                    &#60;/table&#62;
+                &#60;/div&#62;
+                &#60;?php if ($pagination): ?&#62;
+                    &#60;?php $pagination-&#62;Render(); ?&#62;
+                &#60;?php endif; ?&#62;
+            &#60;?php else: ?&#62;
+                &#60;p class="card-text"&#62;
+                    &#60;?php if ($count): ?&#62;
+                        There are no more pages. Please get back to where you came from.
+                    &#60;?php else: ?&#62;
+                        There are no Products. Please create a new one first.
+                    &#60;?php endif; ?&#62;
+                &#60;/p&#62;
+            &#60;?php endif; ?&#62;
+        &#60;/div&#62;
+    &#60;/div&#62;
+&#60;/div&#62;</code></pre>
+            <p>
+                With these changes you will be able to see a link to view the product details with a back button on the page itself.
+            </p>
+            <h2 id="returning-page">Returning to the Page Number <a class="target-sym" href="#returning-page">&#8623;</a></h2>
+            <p>
+                In case when you are on page 2 and you click on the view link to view the product, but now you see that the back page will take you the first page only. To return back to the page you came from we need to update both controllers with the changes below.
+            </p>
+            <p>
+                We start with updating the index controller. We have to store the latest page number in controller.
+            </p>
+            <pre><code>public function indexAction() {
+
+    $products = array();
+
+    $this-&#62;Set('view-product-url', $this-&#62;URL("product", "index", "index", ['{$PRODUCT}']));
+
+    $URLVars = $this-&#62;Request()-&#62;GetURLVars();
+
+    if (isset($URLVars[0]) &#38;&#38; intval($URLVars[0])) {
+
+        $page = intval($URLVars[0]);
+    } else {
+
+        $page = 1;
+    }
+
+    <span class="bg-warning">$this-&#62;Session()-&#62;Set('lastpage', $page);</span>
+
+    $perpage = intval($this-&#62;Request()-&#62;Get('perpage'));
+
+    if ($perpage &#38;&#38;
+            $perpage &#62;= self::minperpage &#38;&#38;
+            $perpage &#60;= self::maxperpage) {
+
+        $this-&#62;Session()-&#62;Set('productperpage', $perpage);
+    } else {
+
+        $perpage = $this-&#62;Session()-&#62;Get('productperpage');
+
+        if (!$perpage) {
+
+            $perpage = self::defaultperpage;
+            $this-&#62;Session()-&#62;Set('productperpage', $perpage);
+        }
+    }
+
+    $results = $this-&#62;Model('products')-&#62;Select('count(*) as "count"');
+    $count = intval($results[0]['count']);
+
+    $totalpages = ceil($count / $perpage);
+
+    $pagination = $this-&#62;Load('Pagination', array(
+        'url' =&#62; $this-&#62;URL('index', 'index', 'index', ['{$PAGE}']),
+        'totalPages' =&#62; $totalpages,
+        'currentPage' =&#62; $page,
+        'container' =&#62; array(
+            'class' =&#62; 'pagination justify-content-end',
+            'prefix' =&#62; '&#60;nav&#62;',
+            'suffix' =&#62; '&#60;/nav&#62;'
+        ),
+        'element' =&#62; array(
+            'class' =&#62; 'page-item',
+            'linkClass' =&#62; 'page-link'
+        )
+    ));
+
+    $this-&#62;Set('pagination', $pagination);
+
+    $this-&#62;Set('count', $count);
+
+    $this-&#62;Set('products', $this-&#62;Model('products')-&#62;Select([], [], [], [], [], [], $perpage, $page, []));
+
+    $this-&#62;View()-&#62;Title('FluitoPHP: Product List');
+}</code></pre>
+            <p>
+                And the products controller to be updated as below.
+            </p>
+            <pre><code>public function indexAction() {
+
+    $URLVars = $this-&#62;Request()-&#62;GetURLVars();
+
+    if (!isset($URLVars[0])) {
+
+        throw new Exception('Error: Please provide Product ID.');
+    }
+
+    $productID = $URLVars[0];
+
+    $product = $this-&#62;Model('products')-&#62;Select([], [['column' =&#62; 'ID', 'rightvalue' =&#62; $productID]]);
+
+    if (!isset($product[0])) {
+
+        throw new Exception('Error: Product ID do not exists.');
+    }
+
+    <span class="bg-warning">$this-&#62;Set('list-products-url', $this-&#62;URL("index", "index", "index", [$this-&#62;Session()-&#62;Get('lastpage')]));</span>
+
+    $this-&#62;Set('product', $product[0]);
+
+    $this-&#62;View()-&#62;Title('FluitoPHP: View Product');
+}</code></pre>
+            <p>
+                Session component saves the last page number you are on and updates the returning URL to that page.
+            </p>
+            <p>
+                We have now completed the view product functionality and now we can head to <a href="new-product.html">New Product</a> functionality.
+            </p>
+        </div>
+    </body>
+</html>

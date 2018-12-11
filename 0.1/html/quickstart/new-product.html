@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>FluitoPHP: Adding a Product</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body>
+        <div>
+            <h2 id="new-product">Adding a New Product <a class="target-sym" href="#new-product">&#8623;</a></h2>
+            <p>
+                To create a page for adding new products, we have to create a new action in the products controller. see the below code to add the new action.
+            </p>
+            <pre><code>public function newAction() {
+
+    if ($this-&#62;Request()-&#62;IsPost()) {
+        $productID = $this-&#62;processEdit();
+
+        if ($productID) {
+
+            $this-&#62;Response()-&#62;SetLocation($this-&#62;URL("index", "index", "index", [$this-&#62;Session()-&#62;Get('lastpage')]));
+        }
+
+        $this-&#62;Set('product', array(
+            'ID' =&#62; 'NEW',
+            'name' =&#62; $this-&#62;Request()-&#62;Post('name'),
+            'descr' =&#62; $this-&#62;Request()-&#62;Post('descr'),
+            'image' =&#62; $this-&#62;Request()-&#62;Post('image')
+        ));
+    }
+
+    $this-&#62;Set('list-products-url', $this-&#62;URL("index", "index", "index", [$this-&#62;Session()-&#62;Get('lastpage')]));
+
+    $this-&#62;View()-&#62;Title('FluitoPHP: New Product');
+}</code></pre>
+            <p>
+                You can see that we have a method call to save the product details to database. so add the below method to product controller class with the code below.
+            </p>
+            <pre><code>private function processEdit() {
+
+    $name = $this-&#62;Request()-&#62;Post('name');
+    $descr = $this-&#62;Request()-&#62;Post('descr');
+    $image = $this-&#62;Request()-&#62;Post('image');
+
+    $alerts = array();
+
+    if (!is_string($name) || !$name) {
+        $alerts[] = 'Please enter name of the product.';
+    }
+    if (!is_string($descr) || !$descr) {
+        $alerts[] = 'Please enter description of the product.';
+    }
+    if (!is_string($image) || !$image) {
+        $alerts[] = 'Please select image of the product.';
+    }
+
+    if (isset($alerts[0])) {
+        $alert_string = 'Please fix the errors below.&#60;hr/&#62;&#60;ol&#62;';
+
+        foreach ($alerts as $alert) {
+
+            $alert_string .= '&#60;li&#62;' . $alert . '&#60;/li&#62;';
+        }
+
+        $alert_string .= '&#60;/ol&#62;';
+
+        $this-&#62;Set('error-response', $alert_string);
+
+        return false;
+    }
+
+    $result = $this-&#62;Model('products')-&#62;Select([['column' =&#62; '&#38;MAX(ID)', 'label' =&#62; 'MAXID']]);
+
+    $productID = $result[0]['MAXID'] + 1;
+
+    $result = $this-&#62;Model('products')-&#62;Insert(['ID' =&#62; $productID,
+        'name' =&#62; $name,
+        'descr' =&#62; $descr,
+        'image' =&#62; $image,
+        'created' =&#62; ['function' =&#62; '&#38;CurrDTTM'],
+        'edited' =&#62; ['function' =&#62; '&#38;CurrDTTM']]);
+
+    if (!$result) {
+        $this-&#62;Set('error-response', $this-&#62;Model('products')-&#62;GetConnection()-&#62;GetError());
+
+        return false;
+    }
+
+    return $productID;
+}</code></pre>
+            <p>
+                Now we create a view (productNew.php) to show the form.
+            </p>
+            <pre><code>&#60;?php
+if ($this-&#62;Request()-&#62;IsPost()) {
+    $this-&#62;product = $this-&#62;Get('product');
+}
+$listurl = $this-&#62;Get('list-products-url');
+?&#62;
+&#60;div class="text-center mt-4 mb-2"&#62;
+    &#60;h1&#62;
+        New Product
+    &#60;/h1&#62;
+&#60;/div&#62;
+&#60;div id="alerts-div"&#62;
+    &#60;?php if ($this-&#62;Get('error-response')): ?&#62;&#60;div class="alert alert-danger alert-dismissible fade show" role="alert"&#62;&#60;?php echo $this-&#62;Get('error-response'); ?&#62;&#60;button type="button" class="close" data-dismiss="alert" aria-label="Close"&#62;&#60;span aria-hidden="true"&#62;&#38;times;&#60;/span&#62;&#60;/button&#62;&#60;/div&#62;&#60;?php endif; ?&#62;
+&#60;/div&#62;
+&#60;div&#62;
+    &#60;div class = "card mb-2"&#62;
+        &#60;h3 class = "card-header text-center"&#62;Enter Details&#60;/h3&#62;
+        &#60;div class = "card-body"&#62;
+            &#60;form action="" method="POST" id="product-form"&#62;
+                &#60;div class="clearfix mb-4"&#62;
+                    &#60;a href="&#60;?php echo $listurl; ?&#62;" class="btn btn-sm btn-outline-primary back float-right ml-2"&#62;Back&#60;/a&#62;
+                    &#60;input class="btn btn-sm btn-outline-primary edit-product float-right" type="submit" value="Save Product"&#62;
+                &#60;/div&#62;
+                &#60;?php $this-&#62;LoadTemplate('productForm'); ?&#62;
+            &#60;/form&#62;
+        &#60;/div&#62;
+    &#60;/div&#62;
+&#60;/div&#62;</code></pre>
+            <p>
+                You can see that we have a LoadTemplate method call to load another sub template file (productForm.php). You can find the code below for the same. This form is compatible with the Edit Product functionality and can be reused.
+            </p>
+            <pre><code>&#60;div class="form-group"&#62;
+    &#60;label for="product-id"&#62;Product ID&#60;/label&#62;
+    &#60;input type="text" class="form-control" id="product-id" placeholder="Product ID" value="&#60;?php echo (isset($this-&#62;product) ? $this-&#62;product['ID'] : 'NEW'); ?&#62;" readonly="readonly"&#62;
+&#60;/div&#62;
+&#60;div class="form-group"&#62;
+    &#60;label for="product-name"&#62;Product Name&#60;/label&#62;
+    &#60;input type="text" name="name" class="form-control" id="product-name" placeholder="Enter Product Name" value="&#60;?php echo (isset($this-&#62;product) ? $this-&#62;product['name'] : ''); ?&#62;"&#62;
+&#60;/div&#62;
+&#60;div class="form-group"&#62;
+    &#60;label for="product-descr"&#62;Product Description&#60;/label&#62;
+    &#60;textarea class="form-control" id="product-descr" name="descr" rows="3" placeholder="Enter Product Description"&#62;&#60;?php echo (isset($this-&#62;product) ? $this-&#62;product['descr'] : ''); ?&#62;&#60;/textarea&#62;
+&#60;/div&#62;
+&#60;div class="form-group"&#62;
+    &#60;label for="product-image"&#62;Product Image&#60;/label&#62;
+    &#60;input type="text" name="image" class="form-control" id="product-image" placeholder="Product Image URL" value="&#60;?php echo (isset($this-&#62;product) ? $this-&#62;product['image'] : ''); ?&#62;" readonly="readonly"&#62;
+&#60;/div&#62;</code></pre>
+            <p>
+                Your new product functionality is now available and can be used. But there is no link which can take you to that page. To add a link we need to edit the product list. First we generate the link in controller and then we use it in the view.
+            </p>
+            <p>
+                The below are the updates to the controller.
+            </p>
+            <pre><code>public function indexAction() {
+
+    $products = array();
+
+    <span class="bg-warning">$this-&#62;Set('new-product-url', $this-&#62;URL("product", "new", "index"));</span>
+
+    $this-&#62;Set('view-product-url', $this-&#62;URL("product", "index", "index", ['{$PRODUCT}']));
+
+    $URLVars = $this-&#62;Request()-&#62;GetURLVars();</code></pre>
+            <p>
+                And the updates to the view.
+            </p>
+            <pre><code>&#60;div class="text-center mt-4 mb-2"&#62;
+    &#60;h1&#62;
+        Products
+    &#60;/h1&#62;
+&#60;/div&#62;
+&#60;?php
+$count = $this-&#62;Get('count');
+$products = $this-&#62;Get('products');
+$pagination = $this-&#62;Get('pagination');
+$viewurl = $this-&#62;Get('view-product-url');
+?&#62;
+&#60;div&#62;
+    &#60;div class = "card mb-2"&#62;
+        &#60;h3 class = "card-header"&#62;List of Products&#60;/h3&#62;
+        &#60;div class = "card-body"&#62;
+            &#60;form class="mb-2"&#62;
+                &#60;p class = "card-text clearfix"&#62;
+                    <span class="bg-warning">&#60;a href = "&#60;?php echo $this-&#62;Get('new-product-url'); ?&#62;" class = "btn btn-sm btn-outline-primary new-product mt-2"&#62;New Product&#60;/a&#62;</span>
+                    &#60;span class="float-right mt-2"&#62;
+                        Products per page:
+                        &#60;input type="number" min="5" max="50" class="form-control d-inline" style="width: 60px;" name="perpage" value="&#60;?php echo $this-&#62;Session()-&#62;Get('productperpage'); ?&#62;"/&#62;
+                        &#60;input type="submit" class="form-control d-inline" style="width: 50px;" value="GO"/&#62;
+                    &#60;/span&#62;
+                &#60;/p&#62;
+            &#60;/form&#62;</code></pre>
+            <p>
+                That is all to add the link to the new product form. But did you ever thought that just copy pasting the link will not be effective and user friendly on the form.
+            </p>
+            <h2 id="using-filemanager">Using File Manager to Select the Product Image <a class="target-sym" href="#using-filemanager">&#8623;</a></h2>
+            <p>
+                To make things more user friendly, we have an example filemanager for use within the application. You can have it customized and restrict access to it but for now we dont have to do anything to integrate the filemanager with our application.
+            </p>
+            <p>
+                To make things easier, we have some code or say methods in our application indexBoot.class.php, due to their static nature they can be called anywhere in the code, but they have been already called inside our moduleIndexBoot.class.php and we just have to implement them.
+            </p>
+            <p>
+                Use the below code updates (HTML code only) to implement the change. Although we have added some custom script to enhance the UI of the form. The updates have to be in productForm.php
+            </p>
+            <pre><code>&#60;div class="form-group"&#62;
+    &#60;label for="product-id"&#62;Product ID&#60;/label&#62;
+    &#60;input type="text" class="form-control" id="product-id" placeholder="Product ID" value="&#60;?php echo (isset($this-&#62;product) ? $this-&#62;product['ID'] : 'NEW'); ?&#62;" readonly="readonly"&#62;
+&#60;/div&#62;
+&#60;div class="form-group"&#62;
+    &#60;label for="product-name"&#62;Product Name&#60;/label&#62;
+    &#60;input type="text" name="name" class="form-control" id="product-name" placeholder="Enter Product Name" value="&#60;?php echo (isset($this-&#62;product) ? $this-&#62;product['name'] : ''); ?&#62;"&#62;
+&#60;/div&#62;
+&#60;div class="form-group"&#62;
+    &#60;label for="product-descr"&#62;Product Description&#60;/label&#62;
+    &#60;textarea class="form-control" id="product-descr" name="descr" rows="3" placeholder="Enter Product Description"&#62;&#60;?php echo (isset($this-&#62;product) ? $this-&#62;product['descr'] : ''); ?&#62;&#60;/textarea&#62;
+&#60;/div&#62;
+&#60;div class="form-group"&#62;
+    &#60;label for="product-image"&#62;Product Image&#60;/label&#62;
+    <span class="bg-warning">&#60;div class="form-row"&#62;</span>
+        <span class="bg-warning">&#60;div class="col"&#62;</span>
+            <span class="bg-warning">&#60;input type="text" name="image" class="form-control" id="product-image" placeholder="Product Image URL" value="&#60;?php echo (isset($this-&#62;product) ? $this-&#62;product['image'] : ''); ?&#62;" readonly="readonly"&#62;</span>
+        <span class="bg-warning">&#60;/div&#62;</span>
+    <span class="bg-warning">&#60;/div&#62;</span>
+    <span class="bg-warning">&#60;div class="form-row"&#62;</span>
+        <span class="bg-warning">&#60;div class="col clearfix"&#62;</span>
+            <span class="bg-warning">&#60;button type="button" class="form-control mt-2 FileManagerButton w-25 float-right" data-target="#product-image"&#62;Select Image&#60;/button&#62;</span>
+        <span class="bg-warning">&#60;/div&#62;</span>
+    <span class="bg-warning">&#60;/div&#62;</span>
+    <span class="bg-warning">&#60;div class="form-row"&#62;</span>
+        <span class="bg-warning">&#60;div class="col text-center"&#62;</span>
+            <span class="bg-warning">&#60;img id="image-thumb" src="&#60;?php echo (isset($this-&#62;product) ? $this-&#62;product['image'] : ''); ?&#62;" alt="Product Image" class="mt-2 img-thumbnail" style="display: none;"/&#62;</span>
+        <span class="bg-warning">&#60;/div&#62;</span>
+    <span class="bg-warning">&#60;/div&#62;</span>
+&#60;/div&#62;
+<span class="bg-warning">&#60;script&#62;</span>
+    <span class="bg-warning">(function ($) {</span>
+        <span class="bg-warning">$(function () {</span>
+            <span class="bg-warning">window.lastImage = '&#60;?php echo (isset($this-&#62;product) ? $this-&#62;product['image'] : ''); ?&#62;';</span>
+            <span class="bg-warning">$('#product-image').on('change.FluitoPHP.example', function () {</span>
+                <span class="bg-warning">var image = $(this).val();</span>
+                <span class="bg-warning">var downloadingImage = $("&#60;img&#62;");</span>
+                <span class="bg-warning">downloadingImage.on('load.FluitoPHP.example', function () {</span>
+                    <span class="bg-warning">window.lastImage = image;</span>
+                    <span class="bg-warning">$('#image-url').html(window.lastImage);</span>
+                    <span class="bg-warning">$('#image-thumb').attr('src', window.lastImage);</span>
+                    <span class="bg-warning">$('#image-thumb').show();</span>
+                <span class="bg-warning">});</span>
+                <span class="bg-warning">downloadingImage.on('error.FluitoPHP.example', function () {</span>
+                    <span class="bg-warning">$('#product-image').val(window.lastImage);</span>
+                    <span class="bg-warning">alert('Please select an image.');</span>
+                <span class="bg-warning">});</span>
+                <span class="bg-warning">downloadingImage.attr('src', image);</span>
+            <span class="bg-warning">});</span>
+
+            <span class="bg-warning">var downloadingImage = $("&#60;img&#62;");</span>
+            <span class="bg-warning">downloadingImage.on('load.FluitoPHP.example', function () {</span>
+                <span class="bg-warning">$('#image-thumb').show();</span>
+            <span class="bg-warning">});</span>
+            <span class="bg-warning">downloadingImage.on('error.FluitoPHP.example', function () {</span>
+                <span class="bg-warning">$('#product-image').val('');</span>
+            <span class="bg-warning">});</span>
+            <span class="bg-warning">downloadingImage.attr('src', window.lastImage);</span>
+        <span class="bg-warning">});</span>
+    <span class="bg-warning">})(jQuery);</span>
+<span class="bg-warning">&#60;/script&#62;</span></code></pre>
+            <p>
+                These changes will add the filemanager functionality to the product form. As we told you that the form will be reused in the edit product functionality also so this will be copied over to the same.
+            </p>
+            <h2 id="adding-client-validations">Adding Javascript Validations <a class="target-sym" href="#adding-client-validations">&#8623;</a></h2>
+            <p>
+                To make user experience better, we add client side validations to the form so that a server trip can be avoided in case javascript is enabled at the client side. To add script, we will create a javascript file <strong>/html/resources/js/productedit.js</strong> and add the below code.
+            </p>
+            <pre><code>(function ($) {
+    $(function () {
+        $('#product-form').on('submit.FluitoPHP.example', function () {
+
+            var alerts = [];
+
+            if ($(this).find('input[name="name"]').val() == '') {
+                alerts.push('Please enter name of the product.');
+            }
+            if ($(this).find('textarea[name="descr"]').val() == '') {
+                alerts.push('Please enter description of the product.');
+            }
+            if ($(this).find('input[name="image"]').val() == '') {
+                alerts.push('Please select image of the product.');
+            }
+
+            if (alerts.length) {
+                var alert_string = 'Please fix the errors below.&#60;hr/&#62;&#60;ol&#62;';
+
+                for (var x in alerts) {
+
+                    alert_string += '&#60;li&#62;' + alerts[x] + '&#60;/li&#62;';
+                }
+
+                alert_string += '&#60;/ol&#62;';
+
+                $('#alerts-div').html('&#60;div class="alert alert-danger alert-dismissible fade show" role="alert"&#62;' + alert_string + '&#60;button type="button" class="close" data-dismiss="alert" aria-label="Close"&#62;&#60;span aria-hidden="true"&#62;&#38;times;&#60;/span&#62;&#60;/button&#62;&#60;/div&#62;');
+
+                return false;
+            }
+        });
+    });
+})(jQuery);</code></pre>
+            <p>
+                Now we need to add this file to our html. To do so we will invoke the Events component in our new action of product controller.
+            </p>
+            <pre><code>public function newAction() {
+
+    if ($this-&#62;Request()-&#62;IsPost()) {
+        $productID = $this-&#62;processEdit();
+
+        if ($productID) {
+
+            $this-&#62;Session()-&#62;SetFlash('newproduct', '1');
+            $this-&#62;Response()-&#62;SetLocation($this-&#62;URL("product", "edit", "index", [$productID]));
+        }
+
+        $this-&#62;Set('product', array(
+            'ID' =&#62; 'NEW',
+            'name' =&#62; $this-&#62;Request()-&#62;Post('name'),
+            'descr' =&#62; $this-&#62;Request()-&#62;Post('descr'),
+            'image' =&#62; $this-&#62;Request()-&#62;Post('image'),
+        ));
+    }
+
+    $this-&#62;Set('list-products-url', $this-&#62;URL("index", "index", "index", [$this-&#62;Session()-&#62;Get('lastpage')]));
+
+    <span class="bg-warning">$this-&#62;Events()-&#62;Add('Head', function() {</span>
+        <span class="bg-warning">?&#62;&#60;script src="&#60;?php echo $this-&#62;Request()-&#62;URL("resources/js/productedit.js"); ?&#62;"&#62;&#60;/script&#62;&#60;?php</span>
+    <span class="bg-warning">});</span>
+
+    $this-&#62;View()-&#62;Title('FluitoPHP: New Product');
+}</code></pre>
+            <p>
+                Our predefined headers and footers already contains the events, so it is better to add it here. Now when we open the form we can see that we can no longer submit the form if the validations are incomplete.
+            </p>
+            <p>
+                We can now head over to the <a href="edit-product.html">Edit Product</a> functionality.
+            </p>
+        </div>
+    </body>
+</html>

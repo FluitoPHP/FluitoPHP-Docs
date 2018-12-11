@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>FluitoPHP: Adding Pagination</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body>
+        <div>
+            <h2 id="pagination">Adding Pagination <a class="target-sym" href="#pagination">&#8623;</a></h2>
+            <p>
+                Our quick start tutorial did render the products on the page, but is it wise to show all the products in our product table on a single page?
+            </p>
+            <p>
+                The answer is NO. To save the pain of pagination, we have Pagination component. See how we implement Pagination component in the below example.
+            </p>
+            <p>
+                First we need to update the controller class to create a pagination object. Do update the class with the highlighted code.
+            </p>
+            <pre><code>public function indexAction() {
+
+    $products = array();
+
+    <span class="bg-warning">$URLVars = $this-&#62;Request()-&#62;GetURLVars();</span>
+
+    <span class="bg-warning">if (isset($URLVars[0]) &#38;&#38; intval($URLVars[0])) {</span>
+
+        <span class="bg-warning">$page = intval($URLVars[0]);</span>
+    <span class="bg-warning">} else {</span>
+
+        <span class="bg-warning">$page = 1;</span>
+    <span class="bg-warning">}</span>
+
+    <span class="bg-warning">$perpage = 10;</span>
+
+    <span class="bg-warning">$results = $this-&#62;Model('products')-&#62;Select('count(*) as "count"');</span>
+    <span class="bg-warning">$count = intval($results[0]['count']);</span>
+
+    <span class="bg-warning">$totalpages = ceil($count / $perpage);</span>
+
+    <span class="bg-warning">$pagination = $this-&#62;Load('Pagination', array(</span>
+        <span class="bg-warning">'url' =&#62; $this-&#62;URL('index', 'index', 'index', ['{$PAGE}']),</span>
+        <span class="bg-warning">'totalPages' =&#62; $totalpages,</span>
+        <span class="bg-warning">'currentPage' =&#62; $page,</span>
+        <span class="bg-warning">'container' =&#62; array(</span>
+            <span class="bg-warning">'class' =&#62; 'pagination justify-content-end',</span>
+            <span class="bg-warning">'prefix' =&#62; '&#60;nav&#62;',</span>
+            <span class="bg-warning">'suffix' =&#62; '&#60;/nav&#62;'</span>
+        <span class="bg-warning">),</span>
+        <span class="bg-warning">'element' =&#62; array(</span>
+            <span class="bg-warning">'class' =&#62; 'page-item',</span>
+            <span class="bg-warning">'linkClass' =&#62; 'page-link'</span>
+        <span class="bg-warning">)</span>
+    <span class="bg-warning">));</span>
+
+    <span class="bg-warning">$this-&#62;Set('pagination', $pagination);</span>
+
+    <span class="bg-warning">$this-&#62;Set('count', $count);</span>
+
+    <span class="bg-warning">$this-&#62;Set('products', $this-&#62;Model('products')-&#62;Select([], [], [], [], [], [], $perpage, $page, []));</span>
+
+    $this-&#62;View()-&#62;Title('FluitoPHP: Product List');
+}</code></pre>
+            <p>
+                Now we need to update the view for adding pagination with the highlighted changes.
+            </p>
+            <pre><code>&#60;div class="text-center mt-4 mb-2"&#62;
+    &#60;h1&#62;
+        Products
+    &#60;/h1&#62;
+&#60;/div&#62;
+&#60;?php
+<span class="bg-warning">$count = $this-&#62;Get('count');</span>
+$products = $this-&#62;Get('products');
+<span class="bg-warning">$pagination = $this-&#62;Get('pagination');</span>
+?&#62;
+&#60;div&#62;
+    &#60;div class = "card mb-2"&#62;
+        &#60;h3 class = "card-header"&#62;List of Products&#60;/h3&#62;
+        &#60;div class = "card-body"&#62;
+            <span class="bg-warning">&#60;?php if ($pagination): ?&#62;</span>
+                <span class="bg-warning">&#60;?php $pagination-&#62;Render(); ?&#62;</span>
+            <span class="bg-warning">&#60;?php endif; ?&#62;</span>
+            <span class="bg-warning">&#60;?php if ($count &#38;&#38; $products): ?&#62;</span>
+                &#60;div class="table-responsive"&#62;
+                    &#60;table class="table"&#62;
+                        &#60;thead&#62;
+                            &#60;tr&#62;
+                                &#60;th scope="col"&#62;ID&#60;/th&#62;
+                                &#60;th scope="col"&#62;Name&#60;/th&#62;
+                                &#60;th scope="col"&#62;Description&#60;/th&#62;
+                            &#60;/tr&#62;
+                        &#60;/thead&#62;
+                        &#60;tfoot&#62;
+                            &#60;tr&#62;
+                                &#60;th scope="col"&#62;ID&#60;/th&#62;
+                                &#60;th scope="col"&#62;Name&#60;/th&#62;
+                                &#60;th scope="col"&#62;Description&#60;/th&#62;
+                            &#60;/tr&#62;
+                        &#60;/tfoot&#62;
+                        &#60;tbody&#62;
+                            &#60;?php foreach ($products as $product): ?&#62;
+                                &#60;tr&#62;
+                                    &#60;td&#62;&#60;?php echo $product['ID']; ?&#62;&#60;/td&#62;
+                                    &#60;td&#62;&#60;?php echo $product['name']; ?&#62;&#60;/td&#62;
+                                    &#60;td&#62;&#60;?php echo $product['descr']; ?&#62;&#60;/td&#62;
+                                &#60;/tr&#62;
+                            &#60;?php endforeach; ?&#62;
+                        &#60;/tbody&#62;
+                    &#60;/table&#62;
+                &#60;/div&#62;
+                <span class="bg-warning">&#60;?php if ($pagination): ?&#62;</span>
+                    <span class="bg-warning">&#60;?php $pagination-&#62;Render(); ?&#62;</span>
+                <span class="bg-warning">&#60;?php endif; ?&#62;</span>
+            &#60;?php else: ?&#62;
+                &#60;p class="card-text"&#62;
+                    <span class="bg-warning">&#60;?php if ($count): ?&#62;</span>
+                        <span class="bg-warning">There are no more pages. Please get back to where you came from.</span>
+                    <span class="bg-warning">&#60;?php else: ?&#62;</span>
+                        <span class="bg-warning">There are no Products.</span>
+                    <span class="bg-warning">&#60;?php endif; ?&#62;</span>
+                &#60;/p&#62;
+            &#60;?php endif; ?&#62;
+        &#60;/div&#62;
+    &#60;/div&#62;
+&#60;/div&#62;</code></pre>
+            <p>
+                You can now see pagination on the product list page. One more thing here to notice is that we have the pagination initialized with some custom options, these options help us in rendering bootstrap 4 compatible pagination. You can go through the options later in the pagination component.
+            </p>
+            <p>
+                Pagination can be a bit tricky and we can add some more options on the page. Let us see if we can change the number of products to display per page and let it be as is with session component.
+            </p>
+            <h2 id="dynamic-pagination">How to Apply Dynamic Pagination <a class="target-sym" href="#dynamic-pagination">&#8623;</a></h2>
+            <p>
+                Applying Dynamic Pagination is a simple task. This requires Session component along with some forms and inputs.
+            </p>
+            <p>
+                First we open the controller and update the controller with the below highlighted code.
+            </p>
+            <pre><code>&#60;?php
+
+class indexController extends \FluitoPHP\Controller\Controller {
+
+    <span class="bg-warning">const minperpage = 5;</span>
+    <span class="bg-warning">const maxperpage = 50;</span>
+    <span class="bg-warning">const defaultperpage = 10;</span>
+
+    public function indexAction() {
+
+        $products = array();
+
+        $URLVars = $this-&#62;Request()-&#62;GetURLVars();
+
+        if (isset($URLVars[0]) &#38;&#38; intval($URLVars[0])) {
+
+            $page = intval($URLVars[0]);
+        } else {
+
+            $page = 1;
+        }
+
+        <span class="bg-warning">$perpage = intval($this-&#62;Request()-&#62;Get('perpage'));</span>
+
+        <span class="bg-warning">if ($perpage &#38;&#38;</span>
+                <span class="bg-warning">$perpage &#62;= self::minperpage &#38;&#38;</span>
+                <span class="bg-warning">$perpage &#60;= self::maxperpage) {</span>
+
+            <span class="bg-warning">$this-&#62;Session()-&#62;Set('productperpage', $perpage);</span>
+        <span class="bg-warning">} else {</span>
+
+            <span class="bg-warning">$perpage = $this-&#62;Session()-&#62;Get('productperpage');</span>
+
+            <span class="bg-warning">if (!$perpage) {</span>
+
+                <span class="bg-warning">$perpage = self::defaultperpage;</span>
+                <span class="bg-warning">$this-&#62;Session()-&#62;Set('productperpage', $perpage);</span>
+            <span class="bg-warning">}</span>
+        <span class="bg-warning">}</span>
+
+        $results = $this-&#62;Model('products')-&#62;Select('count(*) as "count"');
+        $count = intval($results[0]['count']);
+
+        $totalpages = ceil($count / $perpage);
+
+        $pagination = $this-&#62;Load('Pagination', array(
+            'url' =&#62; $this-&#62;URL('index', 'index', 'index', ['{$PAGE}']),
+            'totalPages' =&#62; $totalpages,
+            'currentPage' =&#62; $page,
+            'container' =&#62; array(
+                'class' =&#62; 'pagination justify-content-end',
+                'prefix' =&#62; '&#60;nav&#62;',
+                'suffix' =&#62; '&#60;/nav&#62;'
+            ),
+            'element' =&#62; array(
+                'class' =&#62; 'page-item',
+                'linkClass' =&#62; 'page-link'
+            )
+        ));
+
+        $this-&#62;Set('pagination', $pagination);
+
+        $this-&#62;Set('count', $count);
+
+        $this-&#62;Set('products', $this-&#62;Model('products')-&#62;Select([], [], [], [], [], [], $perpage, $page, []));
+
+        $this-&#62;View()-&#62;Title('FluitoPHP: Product List');
+    }
+}</code></pre>
+            <p>
+                And we update the view to add the form elements to update the Products per Page value.
+            </p>
+            <pre><code>&#60;div class="text-center mt-4 mb-2"&#62;
+    &#60;h1&#62;
+        Products
+    &#60;/h1&#62;
+&#60;/div&#62;
+&#60;?php
+$count = $this-&#62;Get('count');
+$products = $this-&#62;Get('products');
+$pagination = $this-&#62;Get('pagination');
+?&#62;
+&#60;div&#62;
+    &#60;div class = "card mb-2"&#62;
+        &#60;h3 class = "card-header"&#62;List of Products&#60;/h3&#62;
+        &#60;div class = "card-body"&#62;
+            <span class="bg-warning">&#60;form class="mb-2"&#62;</span>
+                <span class="bg-warning">&#60;p class = "card-text clearfix"&#62;</span>
+                    <span class="bg-warning">&#60;span class="float-right"&#62;</span>
+                        <span class="bg-warning">Products per page:</span>
+                        <span class="bg-warning">&#60;input type="number" min="5" max="50" class="form-control d-inline" style="width: 60px;" name="perpage" value="&#60;?php echo $this-&#62;Session()-&#62;Get('productperpage'); ?&#62;"/&#62;</span>
+                        <span class="bg-warning">&#60;input type="submit" class="form-control d-inline" style="width: 50px;" value="GO"/&#62;</span>
+                    <span class="bg-warning">&#60;/span&#62;</span>
+                <span class="bg-warning">&#60;/p&#62;</span>
+            <span class="bg-warning">&#60;/form&#62;</span>
+            &#60;?php if ($pagination): ?&#62;
+                &#60;?php $pagination-&#62;Render(); ?&#62;
+            &#60;?php endif; ?&#62;
+            &#60;?php if ($count &#38;&#38; $products): ?&#62;
+                &#60;div class="table-responsive"&#62;
+                    &#60;table class="table"&#62;
+                        &#60;thead&#62;
+                            &#60;tr&#62;
+                                &#60;th scope="col"&#62;ID&#60;/th&#62;
+                                &#60;th scope="col"&#62;Name&#60;/th&#62;
+                                &#60;th scope="col"&#62;Description&#60;/th&#62;
+                            &#60;/tr&#62;
+                        &#60;/thead&#62;
+                        &#60;tfoot&#62;
+                            &#60;tr&#62;
+                                &#60;th scope="col"&#62;ID&#60;/th&#62;
+                                &#60;th scope="col"&#62;Name&#60;/th&#62;
+                                &#60;th scope="col"&#62;Description&#60;/th&#62;
+                            &#60;/tr&#62;
+                        &#60;/tfoot&#62;
+                        &#60;tbody&#62;
+                            &#60;?php foreach ($products as $product): ?&#62;
+                                &#60;tr&#62;
+                                    &#60;td&#62;&#60;?php echo $product['ID']; ?&#62;&#60;/td&#62;
+                                    &#60;td&#62;&#60;?php echo $product['name']; ?&#62;&#60;/td&#62;
+                                    &#60;td&#62;&#60;?php echo $product['descr']; ?&#62;&#60;/td&#62;
+                                &#60;/tr&#62;
+                            &#60;?php endforeach; ?&#62;
+                        &#60;/tbody&#62;
+                    &#60;/table&#62;
+                &#60;/div&#62;
+                &#60;?php if ($pagination): ?&#62;
+                    &#60;?php $pagination-&#62;Render(); ?&#62;
+                &#60;?php endif; ?&#62;
+            &#60;?php else: ?&#62;
+                &#60;p class="card-text"&#62;
+                    &#60;?php if ($count): ?&#62;
+                        There are no more pages. Please get back to where you came from.
+                    &#60;?php else: ?&#62;
+                        There are no Products. Please create a new one first.
+                    &#60;?php endif; ?&#62;
+                &#60;/p&#62;
+            &#60;?php endif; ?&#62;
+        &#60;/div&#62;
+    &#60;/div&#62;
+&#60;/div&#62;</code></pre>
+            <p>
+                This will apply persistent dynamic pagination in the list of products. So when ever you update the count and leave the page of list and get back to list after that you will get the same count. However we have the minimum and maximum number of products per page defaulted to 5 and 50 respectively.
+            </p>
+            <p>
+                Here we have completed the pagination tutorial. But do you ever wonder that showing the list of products is not a real world scenario and the product list is accompanied with the New Product, View Product, Edit Product and Delete Product function. Next we are gonna start with these functionalities, first one being the <a href="view-product.html">View Product</a>.
+            </p>
+        </div>
+    </body>
+</html>

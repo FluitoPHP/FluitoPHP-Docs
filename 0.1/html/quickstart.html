@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>FluitoPHP: Quick Start</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body>
+        <div>
+            <h2 id="quickstart">Quick Start <a class="target-sym" href="#quickstart">&#8623;</a></h2>
+            <p>
+                To start with the tutorial you need to download the framework from the <a href="https://www.fluitophp.org/download/">download</a> page and create your virtual host on your web server. Currently we only support Apache httpd web server. To use this framework with any other web server update the htaccess rules to the format corresponding to your web server.
+            </p>
+            <p>
+                The directory structure of the framework is such that apart from html directory none should be accessible via web server requests. Though this is not mandatory and knowing that some hosts restricts placing files out of the public html directory and some do not allow sub domains to be created out of the public html directory, we have created rules such that the whole framework with all the files including configuration files can be placed on the public accessible directory, and you should convert those rules if using any other web server.
+            </p>
+            <pre>Base
+|&#8594; FluitoPHP (Core libraries folder)
+|&#8594; application (Contains configuration files and script files and other resources)
+|&#8594; extensions (Contains custom built components and libraries)
+|&#8594; html (Contains index.php, resources i.e. css/js/images and custom folders or static html files)
+|&#8594; temp (Contains temporary files that support the application)
+            </pre>
+            <p>
+                To start with the development, we need to make sure we have at least one module in the modules folder. When you download this framework a working module is already there to start with.
+            </p>
+            <p>
+                <strong>Base/application/modules/index</strong> is the module which will always be present to start with. you can either remove and start fresh or you can modify this module.
+            </p>
+            <p>
+                We will be modifying this module for our products tutorial and start with the list of products first.
+            </p>
+            <p>
+                At first we need to create a new database and products table. Use the below SQL to create a new products table. Please note that we strongly discourage the use of AUTO_INCREMENT.
+            </p>
+            <pre><code>CREATE TABLE `products` (
+  `ID` int(11) NOT NULL PRIMARY KEY,
+  `name` varchar(100) NOT NULL,
+  `descr` varchar(500) NOT NULL,
+  `image` varchar(500) NOT NULL,
+  `created` datetime NOT NULL,
+  `edited` datetime NOT NULL
+);</code></pre>
+            <p>
+                Now we add some test data in the table.
+            </p>
+            <pre><code>INSERT INTO `products` (`ID`, `name`, `descr`, `image`, `created`, `edited`) VALUES
+(1, 'Test Product 1', 'Test Product 1 Description', '', '2018-05-21 03:16:10', '2018-05-21 03:16:10'),
+(2, 'Test Product 2', 'Test Product 2 Description', '', '2018-05-21 03:16:10', '2018-05-21 03:16:10'),
+(3, 'Test Product 3', 'Test Product 3 Description', '', '2018-05-21 03:16:10', '2018-05-21 03:16:10'),
+(4, 'Test Product 4', 'Test Product 4 Description', '', '2018-05-21 03:16:10', '2018-05-21 03:16:10'),
+(5, 'Test Product 5', 'Test Product 5 Description', '', '2018-05-21 03:16:10', '2018-05-21 03:16:10'),
+(6, 'Test Product 6', 'Test Product 6 Description', '', '2018-05-21 03:16:10', '2018-05-21 03:16:10'),
+(7, 'Test Product 7', 'Test Product 7 Description', '', '2018-05-21 03:16:10', '2018-05-21 03:16:10'),
+(8, 'Test Product 8', 'Test Product 8 Description', '', '2018-05-21 03:16:10', '2018-05-21 03:16:10'),
+(9, 'Test Product 9', 'Test Product 9 Description', '', '2018-05-21 03:16:10', '2018-05-21 03:16:10'),
+(10, 'Test Product 10', 'Test Product 10 Description', '', '2018-05-21 03:16:10', '2018-05-21 03:16:10'),
+(11, 'Test Product 11', 'Test Product 11 Description', '', '2018-05-21 03:16:10', '2018-05-21 03:16:10'),
+(12, 'Test Product 12', 'Test Product 12 Description', '', '2018-05-21 03:16:10', '2018-05-21 03:16:10');
+COMMIT;</code></pre>
+            <p>
+                Now we have the database ready to create our application. First we configure the database. Open the <strong>PRODUCTION.ini</strong> file in <strong>Base/application/configuration</strong> and add the database configuration.
+            </p>
+            <pre><code>[DATABASE]
+default = test
+
+connections.test.type = mysql
+connections.test.host = 127.0.0.1
+connections.test.username = test
+connections.test.password = test_pass
+connections.test.database = test
+connections.test.autocommit = Yes</code></pre>
+            <p>
+                Open the <strong>indexController.class.php</strong> file in <strong>Base/application/modules/index/controllers</strong> and change the code.
+            </p>
+            <pre><code>&#60;?php
+
+class indexController extends \FluitoPHP\Controller\Controller {
+
+    public function indexAction() {
+
+        $products = array();
+
+        $this-&#62;Set('products', $this-&#62;Model('products')-&#62;Select());
+
+        $this-&#62;View()-&#62;Title('FluitoPHP: Product List');
+    }
+
+    public function robotsAction() {
+
+        $this-&#62;
+                View()-&#62;
+                SetHeader('');
+        $this-&#62;
+                View()-&#62;
+                SetFooter('');
+        $this-&#62;
+                Response()-&#62;
+                SetContentType('text/plain');
+    }
+
+}</code></pre>
+            <p>
+                Now we update views. Since the skeleton framework comes with a sufficient header and footer files with bootstrap 4, we don't need to update any of them and we start with <strong>indexIndex.php</strong> file in <strong>Base/application/modules/index/views</strong> and update the view as below.
+            </p>
+            <pre><code>&#60;div class="text-center mt-4 mb-2"&#62;
+    &#60;h1&#62;
+        Products
+    &#60;/h1&#62;
+&#60;/div&#62;
+&#60;?php
+$products = $this-&#62;Get('products');
+?&#62;
+&#60;div&#62;
+    &#60;div class = "card mb-2"&#62;
+        &#60;h3 class = "card-header"&#62;List of Products&#60;/h3&#62;
+        &#60;div class = "card-body"&#62;
+            &#60;?php if ($products): ?&#62;
+                &#60;div class="table-responsive"&#62;
+                    &#60;table class="table"&#62;
+                        &#60;thead&#62;
+                            &#60;tr&#62;
+                                &#60;th scope="col"&#62;ID&#60;/th&#62;
+                                &#60;th scope="col"&#62;Name&#60;/th&#62;
+                                &#60;th scope="col"&#62;Description&#60;/th&#62;
+                            &#60;/tr&#62;
+                        &#60;/thead&#62;
+                        &#60;tfoot&#62;
+                            &#60;tr&#62;
+                                &#60;th scope="col"&#62;ID&#60;/th&#62;
+                                &#60;th scope="col"&#62;Name&#60;/th&#62;
+                                &#60;th scope="col"&#62;Description&#60;/th&#62;
+                            &#60;/tr&#62;
+                        &#60;/tfoot&#62;
+                        &#60;tbody&#62;
+                            &#60;?php foreach ($products as $product): ?&#62;
+                                &#60;tr&#62;
+                                    &#60;td&#62;&#60;?php echo $product['ID']; ?&#62;&#60;/td&#62;
+                                    &#60;td&#62;&#60;?php echo $product['name']; ?&#62;&#60;/td&#62;
+                                    &#60;td&#62;&#60;?php echo $product['descr']; ?&#62;&#60;/td&#62;
+                                &#60;/tr&#62;
+                            &#60;?php endforeach; ?&#62;
+                        &#60;/tbody&#62;
+                    &#60;/table&#62;
+                &#60;/div&#62;
+            &#60;?php else: ?&#62;
+                &#60;p class="card-text"&#62;
+                    There are no Products.
+                &#60;/p&#62;
+            &#60;?php endif; ?&#62;
+        &#60;/div&#62;
+    &#60;/div&#62;
+&#60;/div&#62;</code></pre>
+            <p>
+                Congratulations, you can now run the homepage of the application. You can find the product list rendered on the first page.
+            </p>
+            <p>
+                For further lessons, head to <a href="quickstart/pagination.html">Adding Pagination</a> topic.
+            </p>
+        </div>
+    </body>
+</html>

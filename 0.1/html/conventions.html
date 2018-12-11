@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>FluitoPHP: Conventions</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body>
+        <div>
+            <h2 id="conventions">Naming Conventions <a class="target-sym" href="#conventions">&#8623;</a></h2>
+            <p>
+                Talking about the naming conventions used in the framework is precisely simple <strong>camelCase</strong> and a class has the file name with suffix of <strong>.class.php</strong> where as a regular file i.e. views do not have <strong>.class</strong> before <strong>.php</strong>.
+            </p>
+            <p>
+                But talking about the components they always start with a capital letter for example <strong>FileManager</strong> but are not restricted where as the controllers, models and views always starts with a small letter. We will talk about all of them now.
+            </p>
+            <h3 id="components">Components <a class="target-sym" href="#components">&#8623;</a></h3>
+            <p>
+                The rules for naming conventions of components are not restrictive, so any naming can be used but we seriously recommend that you use <strong>CamelCase</strong> for their naming.
+            </p>
+            <h3 id="modules">Modules <a class="target-sym" href="#modules">&#8623;</a></h3>
+            <p>
+                The rules for naming conventions of modules are as restrictive as the file system of the hosted operating system and the letters should be in lower case.
+            </p>
+            <h3 id="controllers">Controllers <a class="target-sym" href="#controllers">&#8623;</a></h3>
+            <p>
+                Controllers on the other hand use only <strong>camelCase</strong> with the suffix of <strong>Controller</strong>, so a URL of <strong>http://&lt;application_base_url&gt;/&lt;module&gt;/XYZ/ABC</strong> will lead to the method <strong>abcAction</strong> of controller class <strong>xyzController</strong> having to extend <strong>\FluitoPHP\Controller\Controller</strong> class. Remember the URLs are case insensitive so weather the URL is in capitals or small it will not matter at all while selecting the appropriate module/controller/action.
+            </p>
+            <p>
+                Due to the fact that modules and controllers are the driving factor of the URLs in the application, the character in the URLs are as there can be naming conventions of the file system allowed for modules, php class naming convention and file system naming conventions for controllers and php method naming conventions for actions. Apart from these conventions only global URL conventions derive the final list of characters that can be used in the URL.
+            </p>
+            <div class="alert alert-info" role="alert">
+                Remember: The extra URL parameters that are parsed as part of the request the case of those parameters will be untouched.
+            </div>
+            <h3 id="views">Views <a class="target-sym" href="#views">&#8623;</a></h3>
+            <p>
+                For the autoloading of the view the naming convention is <strong>camelCase</strong> and the file should be named as <strong>controllerAction.php</strong>. Apart from the autoload, the view names do not need to be restrictive and can be loaded freely by using the exact name/extension or the absolute path of the view name.
+            </p>
+            <h3 id="models">Models <a class="target-sym" href="#models">&#8623;</a></h3>
+            <p>
+                Models on the other hand shares similar class naming convention as of controllers i.e. <strong>xyzModel</strong> and the file should be named as <strong>xyzModel.class.php</strong> and they extend <strong>\FluitoPHP\Model\Model</strong> class. The extended model class can extend the methods defined in the parent model class as the developer see fit.
+            </p>
+            <p>
+                So now you understand the naming conventions of the different parts of the application design, you are free to start the development of your application and learn before or while the job being done.
+            </p>
+        </div>
+    </body>
+</html>

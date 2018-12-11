@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>FluitoPHP: Editing a Product</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body>
+        <div>
+            <h2 id="edit-product">Editing an Existing Product <a class="target-sym" href="#edit-product">&#8623;</a></h2>
+            <p>
+                In previous tutorial you created a new URL to create a new product in the database. Now we will create a URL to edit existing products in the database.
+            </p>
+            <p>
+                First we create a new action (edit) in product controller.
+            </p>
+            <pre><code>public function editAction() {
+
+    $URLVars = $this-&#62;Request()-&#62;GetURLVars();
+
+    if (!isset($URLVars[0])) {
+
+        throw new Exception('Error: Please provide Product ID.');
+    }
+
+    $productID = $URLVars[0];
+
+    $product = $this-&#62;Model('products')-&#62;Select([], [['column' =&#62; 'ID', 'rightvalue' =&#62; $productID]]);
+
+    if (!isset($product[0])) {
+
+        throw new Exception('Error: Product ID do not exists.');
+    }
+
+    if ($this-&#62;Request()-&#62;IsPost()) {
+
+        $this-&#62;Set('update-response', $this-&#62;processEdit($productID));
+        $product = $this-&#62;Model('products')-&#62;Select([], [['column' =&#62; 'ID', 'rightvalue' =&#62; $productID]]);
+
+        if ($this-&#62;Get('error-response')) {
+
+            $product[0]['name'] = $this-&#62;Request()-&#62;Post('name');
+            $product[0]['descr'] = $this-&#62;Request()-&#62;Post('descr');
+            $product[0]['image'] = $this-&#62;Request()-&#62;Post('image');
+        }
+    }
+
+    $this-&#62;Set('last-page-url', $this-&#62;URL("index", "index", "index", [$this-&#62;Session()-&#62;Get('lastpage')]));
+
+    $this-&#62;Set('product', $product[0]);
+
+    $this-&#62;Events()-&#62;Add('Head', function() {
+        ?&#62;&#60;script src="&#60;?php echo $this-&#62;Request()-&#62;URL("resources/js/productedit.js"); ?&#62;"&#62;&#60;/script&#62;&#60;?php
+    });
+
+    $this-&#62;View()-&#62;Title('FluitoPHP: Edit Product');
+}</code></pre>
+            <p>
+                Now we need to accommodate the <strong>processEdit</strong> function for the edit action.
+            </p>
+            <pre><code><span class="bg-warning">private function processEdit($productID = false) {</span>
+
+    $name = $this-&#62;Request()-&#62;Post('name');
+    $descr = $this-&#62;Request()-&#62;Post('descr');
+    $image = $this-&#62;Request()-&#62;Post('image');
+
+    $alerts = array();
+
+    if (!is_string($name) || !$name) {
+        $alerts[] = 'Please enter name of the product.';
+    }
+    if (!is_string($descr) || !$descr) {
+        $alerts[] = 'Please enter description of the product.';
+    }
+    if (!is_string($image) || !$image) {
+        $alerts[] = 'Please select image of the product.';
+    }
+
+    if (isset($alerts[0])) {
+        $alert_string = 'Please fix the errors below.&#60;hr/&#62;&#60;ol&#62;';
+
+        foreach ($alerts as $alert) {
+
+            $alert_string .= '&#60;li&#62;' . $alert . '&#60;/li&#62;';
+        }
+
+        $alert_string .= '&#60;/ol&#62;';
+
+        $this-&#62;Set('error-response', $alert_string);
+
+        return false;
+    }
+
+    <span class="bg-warning">if (!$productID) {</span>
+
+        $result = $this-&#62;Model('products')-&#62;Select([['column' =&#62; '&#38;MAX(ID)', 'label' =&#62; 'MAXID']]);
+
+        $productID = $result[0]['MAXID'] + 1;
+
+        $result = $this-&#62;Model('products')-&#62;Insert(['ID' =&#62; $productID,
+            'name' =&#62; $name,
+            'descr' =&#62; $descr,
+            'image' =&#62; $image,
+            'created' =&#62; ['function' =&#62; '&#38;CurrDTTM'],
+            'edited' =&#62; ['function' =&#62; '&#38;CurrDTTM']]);
+    <span class="bg-warning">} else {</span>
+
+        <span class="bg-warning">$result = $this-&#62;Model('products')-&#62;Update(['name' =&#62; $name,</span>
+            <span class="bg-warning">'descr' =&#62; $descr,</span>
+            <span class="bg-warning">'image' =&#62; $image,</span>
+            <span class="bg-warning">'edited' =&#62; ['function' =&#62; '&#38;CurrDTTM']], [['column' =&#62; 'ID', 'rightvalue' =&#62; $productID]]);</span>
+    <span class="bg-warning">}</span>
+
+    if (!$result) {
+        $this-&#62;Set('error-response', $this-&#62;Model('products')-&#62;GetConnection()-&#62;GetError());
+
+        return false;
+    }
+
+    return $productID;
+}</code></pre>
+            <p>
+                We now create a view for the edit action.
+            </p>
+            <pre><code>&#60;?php
+$this-&#62;product = $this-&#62;Get('product');
+$lasturl = $this-&#62;Get('last-page-url');
+?&#62;
+&#60;div class="text-center mt-4 mb-2"&#62;
+    &#60;h1&#62;
+        Edit Product
+    &#60;/h1&#62;
+&#60;/div&#62;
+&#60;div id="alerts-div"&#62;
+    &#60;?php if ($this-&#62;Get('update-response')): ?&#62;&#60;div class="alert alert-success alert-dismissible fade show" role="alert"&#62;The updates have been saved.&#60;button type="button" class="close" data-dismiss="alert" aria-label="Close"&#62;&#60;span aria-hidden="true"&#62;&#38;times;&#60;/span&#62;&#60;/button&#62;&#60;/div&#62;&#60;?php endif; ?&#62;
+    &#60;?php if ($this-&#62;Get('error-response')): ?&#62;&#60;div class="alert alert-danger alert-dismissible fade show" role="alert"&#62;&#60;?php echo $this-&#62;Get('error-response'); ?&#62;&#60;button type="button" class="close" data-dismiss="alert" aria-label="Close"&#62;&#60;span aria-hidden="true"&#62;&#38;times;&#60;/span&#62;&#60;/button&#62;&#60;/div&#62;&#60;?php endif; ?&#62;
+&#60;/div&#62;
+&#60;div&#62;
+    &#60;div class = "card mb-2"&#62;
+        &#60;h3 class = "card-header text-center"&#62;Edit Details&#60;/h3&#62;
+        &#60;div class = "card-body"&#62;
+            &#60;form action="" method="POST" id="product-form"&#62;
+                &#60;div class="clearfix mb-4"&#62;
+                    &#60;a href="&#60;?php echo $lasturl; ?&#62;" class="btn btn-sm btn-outline-primary back float-right ml-2"&#62;Back&#60;/a&#62;
+                    &#60;input class="btn btn-sm btn-outline-primary edit-product float-right" type="submit" value="Save Product"&#62;
+                &#60;/div&#62;
+                &#60;?php $this-&#62;LoadTemplate('productForm'); ?&#62;
+            &#60;/form&#62;
+        &#60;/div&#62;
+    &#60;/div&#62;
+&#60;/div&#62;</code></pre>
+            <p>
+                You can see that the productForm is invoked here as in previous chapter we created this form to be reusable here. Your edit form is ready but we still needs to link the form to the list and view product page.
+            </p>
+            <p>
+                First we setup product list and update the controller to create the edit URL.
+            </p>
+            <pre><code>public function indexAction() {
+
+    $products = array();
+
+    $this-&#62;Set('new-product-url', $this-&#62;URL("product", "new", "index"));
+
+    <span class="bg-warning">$this-&#62;Set('edit-product-url', $this-&#62;URL("product", "edit", "index", ['{$PRODUCT}']));</span>
+
+    $this-&#62;Set('view-product-url', $this-&#62;URL("product", "index", "index", ['{$PRODUCT}']));
+
+    $URLVars = $this-&#62;Request()-&#62;GetURLVars();
+
+    if (isset($URLVars[0]) &#38;&#38; intval($URLVars[0])) {
+
+        $page = intval($URLVars[0]);
+    } else {
+
+        $page = 1;
+    }</code></pre>
+            <p>
+                Now we use this URL in the view.
+            </p>
+            <pre><code>&#60;div class="text-center mt-4 mb-2"&#62;
+    &#60;h1&#62;
+        Products
+    &#60;/h1&#62;
+&#60;/div&#62;
+&#60;?php
+$count = $this-&#62;Get('count');
+$products = $this-&#62;Get('products');
+$pagination = $this-&#62;Get('pagination');
+<span class="bg-warning">$editurl = $this-&#62;Get('edit-product-url');</span>
+$viewurl = $this-&#62;Get('view-product-url');
+?&#62;
+&#60;div&#62;
+    &#60;div class = "card mb-2"&#62;
+        &#60;h3 class = "card-header"&#62;List of Products&#60;/h3&#62;
+        &#60;div class = "card-body"&#62;
+            &#60;form class="mb-2"&#62;
+                &#60;p class = "card-text clearfix"&#62;
+                    &#60;a href = "&#60;?php echo $this-&#62;Get('new-product-url'); ?&#62;" class = "btn btn-sm btn-outline-primary new-product mt-2"&#62;New Product&#60;/a&#62;
+                    &#60;span class="float-right mt-2"&#62;
+                        Products per page:
+                        &#60;input type="number" min="5" max="50" class="form-control d-inline" style="width: 60px;" name="perpage" value="&#60;?php echo $this-&#62;Session()-&#62;Get('productperpage'); ?&#62;"/&#62;
+                        &#60;input type="submit" class="form-control d-inline" style="width: 50px;" value="GO"/&#62;
+                    &#60;/span&#62;
+                &#60;/p&#62;
+            &#60;/form&#62;
+            &#60;?php if ($pagination): ?&#62;
+                &#60;?php $pagination-&#62;Render(); ?&#62;
+            &#60;?php endif; ?&#62;
+            &#60;?php if ($count &#38;&#38; $products): ?&#62;
+                &#60;div class="table-responsive"&#62;
+                    &#60;table class="table"&#62;
+                        &#60;thead&#62;
+                            &#60;tr&#62;
+                                &#60;th scope="col"&#62;ID&#60;/th&#62;
+                                &#60;th scope="col"&#62;Name&#60;/th&#62;
+                                &#60;th scope="col"&#62;Description&#60;/th&#62;
+                                &#60;th scope="col"&#62;View&#60;/th&#62;
+                                <span class="bg-warning">&#60;th scope="col"&#62;Edit&#60;/th&#62;</span>
+                            &#60;/tr&#62;
+                        &#60;/thead&#62;
+                        &#60;tfoot&#62;
+                            &#60;tr&#62;
+                                &#60;th scope="col"&#62;ID&#60;/th&#62;
+                                &#60;th scope="col"&#62;Name&#60;/th&#62;
+                                &#60;th scope="col"&#62;Description&#60;/th&#62;
+                                &#60;th scope="col"&#62;View&#60;/th&#62;
+                                <span class="bg-warning">&#60;th scope="col"&#62;Edit&#60;/th&#62;</span>
+                            &#60;/tr&#62;
+                        &#60;/tfoot&#62;
+                        &#60;tbody&#62;
+                            &#60;?php foreach ($products as $product): ?&#62;
+                                &#60;tr&#62;
+                                    &#60;td&#62;&#60;?php echo $product['ID']; ?&#62;&#60;/td&#62;
+                                    &#60;td&#62;&#60;?php echo $product['name']; ?&#62;&#60;/td&#62;
+                                    &#60;td&#62;&#60;?php echo $product['descr']; ?&#62;&#60;/td&#62;
+                                    &#60;td&#62;&#60;a href="&#60;?php echo str_replace('{$PRODUCT}', $product['ID'], $viewurl); ?&#62;" title="&#60;?php echo $product['name']; ?&#62;"&#62;View&#60;/a&#62;&#60;/td&#62;
+                                    <span class="bg-warning">&#60;td&#62;&#60;a href="&#60;?php echo str_replace('{$PRODUCT}', $product['ID'], $editurl); ?&#62;" title="&#60;?php echo $product['name']; ?&#62;"&#62;Edit&#60;/a&#62;&#60;/td&#62;</span>
+                                &#60;/tr&#62;
+                            &#60;?php endforeach; ?&#62;
+                        &#60;/tbody&#62;
+                    &#60;/table&#62;
+                &#60;/div&#62;
+                &#60;?php if ($pagination): ?&#62;
+                    &#60;?php $pagination-&#62;Render(); ?&#62;
+                &#60;?php endif; ?&#62;
+            &#60;?php else: ?&#62;
+                &#60;p class="card-text"&#62;
+                    &#60;?php if ($count): ?&#62;
+                        There are no more pages. Please get back to where you came from.
+                    &#60;?php else: ?&#62;
+                        There are no Products. Please create a new one first.
+                    &#60;?php endif; ?&#62;
+                &#60;/p&#62;
+            &#60;?php endif; ?&#62;
+        &#60;/div&#62;
+    &#60;/div&#62;
+&#60;/div&#62;</code></pre>
+            <p>
+                Now we add the edit link to view product page. Same with the list we will generate the URL in controller and use that in the view. Below are the updates to action of controller.
+            </p>
+            <pre><code>public function indexAction() {
+
+    $URLVars = $this-&#62;Request()-&#62;GetURLVars();
+
+    if (!isset($URLVars[0])) {
+
+        throw new Exception('Error: Please provide Product ID.');
+    }
+
+    $productID = $URLVars[0];
+
+    $product = $this-&#62;Model('products')-&#62;Select([], [['column' =&#62; 'ID', 'rightvalue' =&#62; $productID]]);
+
+    if (!isset($product[0])) {
+
+        throw new Exception('Error: Product ID do not exists.');
+    }
+
+    $this-&#62;Set('list-products-url', $this-&#62;URL("index", "index", "index", [$this-&#62;Session()-&#62;Get('lastpage')]));
+
+    <span class="bg-warning">$this-&#62;Set('edit-product-url', $this-&#62;URL("product", "edit", "index", [$productID]));</span>
+
+    $this-&#62;Set('product', $product[0]);
+
+    $this-&#62;View()-&#62;Title('FluitoPHP: View Product');
+}</code></pre>
+            <p>
+                And the updates to the view.
+            </p>
+            <pre><code>&#60;?php
+$product = $this-&#62;Get('product');
+<span class="bg-warning">$editurl = $this-&#62;Get('edit-product-url');</span>
+$listurl = $this-&#62;Get('list-products-url');
+?&#62;
+&#60;div class="text-center mt-4 mb-2"&#62;
+    &#60;h1&#62;
+        Product Details
+    &#60;/h1&#62;
+&#60;/div&#62;
+&#60;div&#62;
+    &#60;div class = "card mb-2"&#62;
+        &#60;h3 class = "card-header text-center"&#62;&#60;?php echo $product['name']; ?&#62;&#60;/h3&#62;
+        &#60;div class = "card-body"&#62;
+            &#60;div class="clearfix mb-4"&#62;
+                &#60;a href="&#60;?php echo $listurl; ?&#62;" class="btn btn-sm btn-outline-primary back float-right ml-2"&#62;Back&#60;/a&#62;
+                <span class="bg-warning">&#60;a href="&#60;?php echo $editurl; ?&#62;" class="btn btn-sm btn-outline-primary edit-product float-right"&#62;Edit Product&#60;/a&#62;</span>
+            &#60;/div&#62;
+            &#60;div class="form-group"&#62;
+                &#60;label&#62;Product ID&#60;/label&#62;
+                &#60;div class="form-control"&#62;&#60;?php echo $product['ID']; ?&#62;&#60;/div&#62;
+            &#60;/div&#62;</code></pre>
+            <p>
+                This concludes your edit product page. But there is a scenario when we come from list product page we can get back to the same, but when we come from view product page the back button will still take us to the list page. Head over to the next section for the changes that are required to accomodate this.
+            </p>
+            <h2 id="back-page-updates">Getting Back to the Last Page <a class="target-sym" href="#back-page-updates">&#8623;</a></h2>
+            <p>
+                Getting back to the page where you came from needs to have some changes on the last page controllers.
+            </p>
+            <p>
+                So first we update the index controller to add/update a session variable that defines the last page of the user.
+            </p>
+            <pre><code>public function indexAction() {
+
+    $products = array();
+
+    $this-&#62;Set('new-product-url', $this-&#62;URL("product", "new", "index"));
+
+    $this-&#62;Set('edit-product-url', $this-&#62;URL("product", "edit", "index", ['{$PRODUCT}']));
+
+    $this-&#62;Set('view-product-url', $this-&#62;URL("product", "index", "index", ['{$PRODUCT}']));
+
+    $URLVars = $this-&#62;Request()-&#62;GetURLVars();
+
+    if (isset($URLVars[0]) &#38;&#38; intval($URLVars[0])) {
+
+        $page = intval($URLVars[0]);
+    } else {
+
+        $page = 1;
+    }
+
+    <span class="bg-warning">$this-&#62;Session()-&#62;Set('lasttype', 'list');</span>
+    $this-&#62;Session()-&#62;Set('lastpage', $page);
+
+    $perpage = intval($this-&#62;Request()-&#62;Get('perpage'));</code></pre>
+            <p>
+                And we add the same code with a different value on view page action.
+            </p>
+            <pre><code>public function indexAction() {
+
+    $URLVars = $this-&#62;Request()-&#62;GetURLVars();
+
+    if (!isset($URLVars[0])) {
+
+        throw new Exception('Error: Please provide Product ID.');
+    }
+
+    $productID = $URLVars[0];
+
+    $product = $this-&#62;Model('products')-&#62;Select([], [['column' =&#62; 'ID', 'rightvalue' =&#62; $productID]]);
+
+    if (!isset($product[0])) {
+
+        throw new Exception('Error: Product ID do not exists.');
+    }
+
+    <span class="bg-warning">$this-&#62;Session()-&#62;Set('lasttype', 'view');</span>
+
+    $this-&#62;Set('list-products-url', $this-&#62;URL("index", "index", "index", [$this-&#62;Session()-&#62;Get('lastpage')]));
+
+    $this-&#62;Set('edit-product-url', $this-&#62;URL("product", "edit", "index", [$productID]));
+
+    $this-&#62;Set('product', $product[0]);
+
+    $this-&#62;View()-&#62;Title('FluitoPHP: View Product');
+}</code></pre>
+            <p>
+                Ofcourse the Product ID of the view page will be same as the Product ID of the edit page, so we wont be needing to store that. Now we update the action of the edit page as below.
+            </p>
+            <pre><code>public function editAction() {
+
+    $URLVars = $this-&#62;Request()-&#62;GetURLVars();
+
+    if (!isset($URLVars[0])) {
+
+        throw new Exception('Error: Please provide Product ID.');
+    }
+
+    $productID = $URLVars[0];
+
+    $product = $this-&#62;Model('products')-&#62;Select([], [['column' =&#62; 'ID', 'rightvalue' =&#62; $productID]]);
+
+    if (!isset($product[0])) {
+
+        throw new Exception('Error: Product ID do not exists.');
+    }
+
+    if ($this-&#62;Request()-&#62;IsPost()) {
+
+        $this-&#62;Set('update-response', $this-&#62;processEdit($productID));
+        $product = $this-&#62;Model('products')-&#62;Select([], [['column' =&#62; 'ID', 'rightvalue' =&#62; $productID]]);
+
+        if ($this-&#62;Get('error-response')) {
+
+            $product[0]['name'] = $this-&#62;Request()-&#62;Post('name');
+            $product[0]['descr'] = $this-&#62;Request()-&#62;Post('descr');
+            $product[0]['image'] = $this-&#62;Request()-&#62;Post('image');
+        }
+    }
+
+    <span class="bg-warning">if ($this-&#62;Session()-&#62;Get('lasttype') == 'list') {</span>
+
+        $this-&#62;Set('last-page-url', $this-&#62;URL("index", "index", "index", [$this-&#62;Session()-&#62;Get('lastpage')]));
+    <span class="bg-warning">} else {</span>
+
+        <span class="bg-warning">$this-&#62;Set('last-page-url', $this-&#62;URL("product", "index", "index", [$productID]));</span>
+    <span class="bg-warning">}</span>
+
+    $this-&#62;Set('product', $product[0]);
+
+    $this-&#62;Events()-&#62;Add('Head', function() {
+        ?&#62;&#60;script src="&#60;?php echo $this-&#62;Request()-&#62;URL("resources/js/productedit.js"); ?&#62;"&#62;&#60;/script&#62;&#60;?php
+    });
+
+    $this-&#62;View()-&#62;Title('FluitoPHP: Edit Product');
+}</code></pre>
+            <p>
+                This make the back button more user friendly.
+            </p>
+            <h2 id="new-to-edit">New Product redirects to Edit <a class="target-sym" href="#new-to-edit">&#8623;</a></h2>
+            <p>
+                So when we save a new product it previously took us to the list page but this is not how we wanted. This should take user to the edit page so that any other edits can be done right away. To do so we will update the new product action such that it takes back to edit page and not list page.
+            </p>
+            <pre><code>public function newAction() {
+
+    if ($this-&#62;Request()-&#62;IsPost()) {
+        $productID = $this-&#62;processEdit();
+
+        if ($productID) {
+
+            <span class="bg-warning">$this-&#62;Session()-&#62;SetFlash('newproduct', '1');</span>
+            <span class="bg-warning">$this-&#62;Response()-&#62;SetLocation($this-&#62;URL("product", "edit", "index", [$productID]));</span>
+        }
+
+        $this-&#62;Set('product', array(
+            'ID' =&#62; 'NEW',
+            'name' =&#62; $this-&#62;Request()-&#62;Post('name'),
+            'descr' =&#62; $this-&#62;Request()-&#62;Post('descr'),
+            'image' =&#62; $this-&#62;Request()-&#62;Post('image'),
+        ));
+    }
+
+    $this-&#62;Set('list-products-url', $this-&#62;URL("index", "index", "index", [$this-&#62;Session()-&#62;Get('lastpage')]));
+
+    $this-&#62;Events()-&#62;Add('Head', function() {
+        ?&#62;&#60;script src="&#60;?php echo $this-&#62;Request()-&#62;URL("resources/js/productedit.js"); ?&#62;"&#62;&#60;/script&#62;&#60;?php
+    });
+
+    $this-&#62;View()-&#62;Title('FluitoPHP: New Product');
+}</code></pre>
+            <p>
+                And the edit product action as below.
+            </p>
+            <pre><code>public function editAction() {
+
+    $URLVars = $this-&#38;#62;Request()-&#38;#62;GetURLVars();
+
+    if (!isset($URLVars[0])) {
+
+        throw new Exception('Error: Please provide Product ID.');
+    }
+
+    $productID = $URLVars[0];
+
+    $product = $this-&#38;#62;Model('products')-&#38;#62;Select([], [['column' =&#38;#62; 'ID', 'rightvalue' =&#38;#62; $productID]]);
+
+    if (!isset($product[0])) {
+
+        throw new Exception('Error: Product ID do not exists.');
+    }
+
+    if ($this-&#38;#62;Request()-&#38;#62;IsPost()) {
+
+        $this-&#38;#62;Set('update-response', $this-&#38;#62;processEdit($productID));
+        $product = $this-&#38;#62;Model('products')-&#38;#62;Select([], [['column' =&#38;#62; 'ID', 'rightvalue' =&#38;#62; $productID]]);
+
+        if ($this-&#38;#62;Get('error-response')) {
+
+            $product[0]['name'] = $this-&#38;#62;Request()-&#38;#62;Post('name');
+            $product[0]['descr'] = $this-&#38;#62;Request()-&#38;#62;Post('descr');
+            $product[0]['image'] = $this-&#38;#62;Request()-&#38;#62;Post('image');
+        }
+    }
+
+    <span class="bg-warning">if ($this-&#38;#62;Session()-&#38;#62;GetFlash('newproduct')) {</span>
+
+        <span class="bg-warning">$this-&#38;#62;Set('new-response', true);</span>
+    <span class="bg-warning">}</span>
+
+    $this-&#38;#62;Set('list-products-url', $this-&#38;#62;URL("index", "index", "index", [$this-&#38;#62;Session()-&#38;#62;Get('lastpage')]));
+
+    if ($this-&#38;#62;Session()-&#38;#62;Get('lasttype') == 'list') {
+
+        $this-&#38;#62;Set('last-page-url', $this-&#38;#62;URL("index", "index", "index", [$this-&#38;#62;Session()-&#38;#62;Get('lastpage')]));
+    } else {
+
+        $this-&#38;#62;Set('last-page-url', $this-&#38;#62;URL("product", "index", "index", [$productID]));
+    }
+
+    $this-&#38;#62;Set('product', $product[0]);
+
+    $this-&#38;#62;Events()-&#38;#62;Add('Head', function() {
+        ?&#38;#62;&#38;#60;script src="&#38;#60;?php echo $this-&#38;#62;Request()-&#38;#62;URL("resources/js/productedit.js"); ?&#38;#62;"&#38;#62;&#38;#60;/script&#38;#62;&#38;#60;?php
+    });
+
+    $this-&#38;#62;View()-&#38;#62;Title('FluitoPHP: Edit Product');
+}</code></pre>
+            <p>
+                Now we update the productEdit view to display that the new product is successfully saved.
+            </p>
+            <pre><code>&#60;?php
+$this-&#62;product = $this-&#62;Get('product');
+$lasturl = $this-&#62;Get('last-page-url');
+?&#62;
+&#60;div class="text-center mt-4 mb-2"&#62;
+    &#60;h1&#62;
+        Edit Product
+    &#60;/h1&#62;
+&#60;/div&#62;
+&#60;div id="alerts-div"&#62;
+    <span class="bg-warning">&#60;?php if ($this-&#62;Get('new-response')): ?&#62;&#60;div class="alert alert-success alert-dismissible fade show" role="alert"&#62;The new product is saved.&#60;button type="button" class="close" data-dismiss="alert" aria-label="Close"&#62;&#60;span aria-hidden="true"&#62;&#38;times;&#60;/span&#62;&#60;/button&#62;&#60;/div&#62;&#60;?php endif; ?&#62;</span>
+    &#60;?php if ($this-&#62;Get('update-response')): ?&#62;&#60;div class="alert alert-success alert-dismissible fade show" role="alert"&#62;The updates have been saved.&#60;button type="button" class="close" data-dismiss="alert" aria-label="Close"&#62;&#60;span aria-hidden="true"&#62;&#38;times;&#60;/span&#62;&#60;/button&#62;&#60;/div&#62;&#60;?php endif; ?&#62;
+    &#60;?php if ($this-&#62;Get('error-response')): ?&#62;&#60;div class="alert alert-danger alert-dismissible fade show" role="alert"&#62;&#60;?php echo $this-&#62;Get('error-response'); ?&#62;&#60;button type="button" class="close" data-dismiss="alert" aria-label="Close"&#62;&#60;span aria-hidden="true"&#62;&#38;times;&#60;/span&#62;&#60;/button&#62;&#60;/div&#62;&#60;?php endif; ?&#62;
+&#60;/div&#62;</code></pre>
+            <p>
+                With these changes the, when a new product is saved successfully we will be taken to its edit page directly.
+            </p>
+            <p>
+                Now this concludes the entire edit page. you can now head to the <a href="delete-product.html">Delete Product</a> functionality.
+            </p>
+        </div>
+    </body>
+</html>
